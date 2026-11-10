@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Vibe">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0f">
+<title>Vibe Player</title>
+<style>
+:root{--bg:#0a0a0f;--surface:#16161f;--surface2:#22222e;--text:#f0f0f5;--dim:#8b8b9e;--accent:#8b5cf6;--accent2:#06b6d4}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;overscroll-behavior:none;overflow:hidden}
+body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left)}
+.header{padding:16px 20px 12px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.title{font-size:22px;font-weight:700;letter-spacing:-.5px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.add-btn{background:var(--surface);border:none;color:var(--text);padding:8px 14px;border-radius:20px;font-size:14px;font-weight:600;cursor:pointer}
+.add-btn:active{background:var(--surface2)}
+.screens{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:220px}
+.track{display:flex;align-items:center;gap:12px;padding:12px 20px;cursor:pointer}
+.track:active,.track.active{background:var(--surface)}
+.track-icon{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;color:white}
+.track-info{flex:1;min-width:0}
+.track-name{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track-dur{font-size:13px;color:var(--dim);margin-top:2px}
+.empty{padding:60px 30px;text-align:center;color:var(--dim)}
+.empty svg{width:64px;height:64px;margin-bottom:16px;opacity:.3}
+.empty h2{font-size:18px;color:var(--text);margin-bottom:8px;font-weight:600}
+.empty p{font-size:14px;line-height:1.5}
+.player{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(180deg,var(--surface),#0f0f18);border-top:1px solid rgba(255,255,255,.06);padding:12px 20px calc(16px + env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}
+.player.visible{transform:translateY(0)}
+.mini-bar{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.mini-info{flex:1;min-width:0}
+.mini-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini-sub{font-size:11px;color:var(--dim);margin-top:2px}
+.play-btn{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.play-btn svg{width:18px;height:18px;fill:white}
+.seek{width:100%;-webkit-appearance:none;height:3px;border-radius:2px;background:var(--surface2);outline:none;margin-bottom:8px}
+.seek::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:white;box-shadow:0 0 0 4px rgba(139,92,246,.3)}
+.time-row{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums;margin-bottom:12px}
+.ctrl-group{background:var(--surface2);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.ctrl-label{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:flex;justify-content:space-between}
+.ctrl-value{color:var(--accent);font-weight:700;font-size:11px}
+.ctrl-slider{width:100%;-webkit-appearance:none;height:3px;border-radius:2px;background:#0a0a0f;outline:none}
+.ctrl-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:white}
+.toggles{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+.toggle{flex-shrink:0;padding:7px 13px;border-radius:16px;background:var(--surface2);border:none;color:var(--dim);font-size:12px;font-weight:600;white-space:nowrap}
+.toggle.on{background:linear-gradient(135deg,var(--accent),var(--accent2));color:white}
+.hidden{display:none}
+input[type="file"]{display:none}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="title">Vibe Player</div>
+  <button class="add-btn" id="addBtn">+ Добавить</button>
+</div>
+<div class="screens" id="screens">
+  <div class="empty" id="empty">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+    <h2>Библиотека пуста</h2>
+    <p>Нажми «+ Добавить» и выбери треки с iPhone.<br>MP3, M4A, FLAC, WAV — всё работает.</p>
+  </div>
+  <div id="tracks"></div>
+</div>
+<input type="file" id="fileInput" multiple accept="audio/*">
+<div class="player" id="player">
+  <div class="mini-bar">
+    <div class="mini-info">
+      <div class="mini-name" id="miniName">—</div>
+      <div class="mini-sub" id="miniSub">Vibe Player</div>
+    </div>
+    <button class="play-btn" id="playBtn">
+      <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    </button>
+  </div>
+  <input type="range" class="seek" id="seek" min="0" max="1000" value="0">
+  <div class="time-row"><span id="timeCur">0:00</span><span id="timeDur">0:00</span></div>
+  <div class="ctrl-group">
+    <div class="ctrl-label">Скорость <span class="ctrl-value" id="speedVal">1.00×</span></div>
+    <input type="range" class="ctrl-slider" id="speed" min="50" max="200" value="100">
+  </div>
+  <div class="toggles">
+    <button class="toggle" id="tReverb">Reverb</button>
+    <button class="toggle" id="tBass">Bass Boost</button>
+    <button class="toggle" id="tWide">Wide Stereo</button>
+    <button class="toggle on" id="tPreserve">Сохранять тон</button>
+  </div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const fileInput=$('fileInput'),tracksEl=$('tracks'),emptyEl=$('empty'),playerEl=$('player');
+let tracks=[],currentIdx=-1;
+const audio=new Audio();audio.preload='metadata';
+let ctx,sourceNode,gainNode,bassFilter,panner,lfo,lfoGain,dryGain,wetGain,reverb,audioInit=false;
+function initGraph(){
+  if(audioInit)return;
+  ctx=new (window.AudioContext||window.webkitAudioContext)();
+  sourceNode=ctx.createMediaElementSource(audio);
+  gainNode=ctx.createGain();
+  bassFilter=ctx.createBiquadFilter();
+  bassFilter.type='lowshelf';bassFilter.frequency.value=150;bassFilter.gain.value=0;
+  panner=ctx.createStereoPanner();panner.pan.value=0;
+  lfo=ctx.createOscillator();lfo.frequency.value=0.15;
+  lfoGain=ctx.createGain();lfoGain.gain.value=0;
+  lfo.connect(lfoGain);lfoGain.connect(panner.pan);lfo.start();
+  reverb=ctx.createConvolver();reverb.buffer=makeImpulse(2.5,2.2);
+  dryGain=ctx.createGain();dryGain.gain.value=1;
+  wetGain=ctx.createGain();wetGain.gain.value=0;
+  sourceNode.connect(bassFilter);bassFilter.connect(panner);
+  panner.connect(gainNode);
+  panner.connect(dryGain);dryGain.connect(gainNode);
+  panner.connect(reverb);reverb.connect(wetGain);wetGain.connect(gainNode);
+  gainNode.connect(ctx.destination);
+  audioInit=true;
+}
+function makeImpulse(dur,decay){
+  const rate=ctx.sampleRate,len=rate*dur,buf=ctx.createBuffer(2,len,rate);
+  for(let ch=0;ch<2;ch++){const d=buf.getChannelData(ch);
+    for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,decay);}
+  return buf;
+}
+const DB='vibe-player',STORE='tracks';
+let dbp=null;
+function openDB(){
+  if(!dbp)dbp=new Promise((res,rej)=>{
+    const r=indexedDB.open(DB,1);
+    r.onupgradeneeded=()=>r.result.createObjectStore(STORE,{keyPath:'id'});
+    r.onsuccess=()=>res(r.result);
+    r.onerror=()=>rej(r.error);
+  });
+  return dbp;
+}
+async function saveTrack(t){
+  const db=await openDB();
+  const tx=db.transaction(STORE,'readwrite');
+  tx.objectStore(STORE).put({id:t.id,name:t.name,blob:t.file});
+  return new Promise(r=>tx.oncomplete=r);
+}
+async function loadSaved(){
+  const db=await openDB();
+  const tx=db.transaction(STORE,'readonly');
+  const req=tx.objectStore(STORE).getAll();
+  return new Promise(r=>req.onsuccess=()=>r(req.result));
+}
+$('addBtn').onclick=()=>fileInput.click();
+fileInput.onchange=async e=>{
+  const files=[...e.target.files];
+  for(const file of files){
+    if(!file.type.startsWith('audio/')&&!/\.(mp3|m4a|flac|wav|ogg|aac|opus)$/i.test(file.name))continue;
+    const id=Date.now()+'_'+Math.random().toString(36).slice(2);
+    const name=file.name.replace(/\.[^.]+$/,'');
+    const url=URL.createObjectURL(file);
+    const t={id,name,file,url,duration:0};
+    tracks.push(t);
+    try{await saveTrack(t);}catch(err){}
+    const probe=new Audio(url);
+    probe.onloadedmetadata=()=>{t.duration=probe.duration;renderTracks();};
+  }
+  fileInput.value='';
+  renderTracks();
+};
+function renderTracks(){
+  emptyEl.classList.toggle('hidden',tracks.length>0);
+  tracksEl.innerHTML=tracks.map((t,i)=>`
+    <div class="track ${i===currentIdx?'active':''}" data-i="${i}">
+      <div class="track-icon">♪</div>
+      <div class="track-info">
+        <div class="track-name">${esc(t.name)}</div>
+        <div class="track-dur">${t.duration?fmt(t.duration):''}</div>
+      </div>
+    </div>`).join('');
+  tracksEl.querySelectorAll('.track').forEach(el=>{
+    el.onclick=()=>playIdx(+el.dataset.i);
+  });
+}
+function esc(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function fmt(s){if(!isFinite(s))return'0:00';const m=Math.floor(s/60),x=Math.floor(s%60);return m+':'+String(x).padStart(2,'0');}
+async function playIdx(i){
+  if(i<0||i>=tracks.length)return;
+  currentIdx=i;
+  const t=tracks[i];
+  audio.src=t.url;
+  playerEl.classList.add('visible');
+  $('miniName').textContent=t.name;
+  initGraph();
+  if(ctx.state==='suspended')await ctx.resume();
+  applySpeed();
+  try{await audio.play();}catch(e){}
+  updateIcon();updateMediaSession();renderTracks();
+}
+function updateIcon(){
+  $('playIcon').innerHTML=audio.paused
+    ?'<path d="M8 5v14l11-7z"/>'
+    :'<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>';
+}
+$('playBtn').onclick=async()=>{
+  if(currentIdx<0&&tracks.length)return playIdx(0);
+  initGraph();
+  if(ctx.state==='suspended')await ctx.resume();
+  if(audio.paused){try{await audio.play();}catch(e){}}else{audio.pause();}
+  updateIcon();
+};
+audio.onplay=updateIcon;
+audio.onpause=updateIcon;
+audio.ontimeupdate=()=>{
+  if(!audio.duration)return;
+  $('seek').value=(audio.currentTime/audio.duration)*1000;
+  $('timeCur').textContent=fmt(audio.currentTime);
+  $('timeDur').textContent=fmt(audio.duration);
+};
+audio.onended=()=>{
+  if(currentIdx<tracks.length-1)playIdx(currentIdx+1);
+  else{audio.pause();updateIcon();}
+};
+audio.onloadedmetadata=()=>{$('timeDur').textContent=fmt(audio.duration);};
+$('seek').oninput=e=>{
+  if(!audio.duration)return;
+  audio.currentTime=(e.target.value/1000)*audio.duration;
+};
+const speedEl=$('speed');
+let preservePitch=true;
+function applySpeed(){
+  const speed=speedEl.value/100;
+  audio.playbackRate=speed;
+  audio.preservesPitch=preservePitch;
+  audio.mozPreservesPitch=preservePitch;
+  audio.webkitPreservesPitch=preservePitch;
+  $('speedVal').textContent=speed.toFixed(2)+'×';
+}
+speedEl.oninput=applySpeed;
+$('tPreserve').onclick=()=>{
+  preservePitch=!preservePitch;
+  $('tPreserve').classList.toggle('on',preservePitch);
+  $('tPreserve').textContent=preservePitch?'Сохранять тон':'Slowed/Speedup';
+  applySpeed();
+};
+$('tReverb').onclick=()=>{
+  initGraph();
+  const on=$('tReverb').classList.toggle('on');
+  wetGain.gain.value=on?0.5:0;
+  dryGain.gain.value=on?0.7:1;
+};
+$('tBass').onclick=()=>{
+  initGraph();
+  const on=$('tBass').classList.toggle('on');
+  bassFilter.gain.value=on?6:0;
+};
+$('tWide').onclick=()=>{
+  initGraph();
+  const on=$('tWide').classList.toggle('on');
+  lfoGain.gain.value=on?0.3:0;
+};
+function updateMediaSession(){
+  if(!('mediaSession'in navigator))return;
+  const t=tracks[currentIdx];if(!t)return;
+  try{
+    navigator.mediaSession.metadata=new MediaMetadata({title:t.name,artist:'Vibe Player',album:'Local Library'});
+    navigator.mediaSession.setActionHandler('play',()=>audio.play());
+    navigator.mediaSession.setActionHandler('pause',()=>audio.pause());
+    navigator.mediaSession.setActionHandler('previoustrack',()=>playIdx(currentIdx-1));
+    navigator.mediaSession.setActionHandler('nexttrack',()=>playIdx(currentIdx+1));
+    navigator.mediaSession.setActionHandler('seekto',e=>{if(e.seekTime!=null)audio.currentTime=e.seekTime;});
+  }catch(e){}
+}
+(async()=>{
+  try{
+    const saved=await loadSaved();
+    for(const s of saved){
+      const url=URL.createObjectURL(s.blob);
+      tracks.push({id:s.id,name:s.name,file:s.blob,url,duration:0});
+    }
+    renderTracks();
+    tracks.forEach(t=>{
+      const probe=new Audio(t.url);
+      probe.onloadedmetadata=()=>{t.duration=probe.duration;renderTracks();};
+    });
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
