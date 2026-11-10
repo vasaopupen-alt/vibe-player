@@ -96,6 +96,7 @@ const audio=new Audio();audio.preload='metadata';
 let ctx,sourceNode,gainNode,bassFilter,panner,lfo,lfoGain,dryGain,wetGain,reverb,audioInit=false;
 function initGraph(){
   if(audioInit)return;
+  if(navigator.audioSession)navigator.audioSession.type='playback';
   ctx=new (window.AudioContext||window.webkitAudioContext)();
   sourceNode=ctx.createMediaElementSource(audio);
   gainNode=ctx.createGain();
@@ -279,8 +280,5 @@ function updateMediaSession(){
   }catch(e){}
 })();
 </script>
-</body>
-</script>
-<script>document.getElementById('fileInput').removeAttribute('accept');</script>
 </body>
 </html>
